@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 
 interface Contact {
   id: number;
@@ -10,56 +10,54 @@ interface Contact {
 
 interface User {
   id: number;
-  username: string;
+  username: string | null;
   first_name: string;
-  last_name: string;
+  last_name: string | null;
 }
 
 export default function Home() {
+  const [step, setStep] = useState<"phone" | "code" | "dashboard">("phone");
+  const [phone, setPhone] = useState("");
+  const [code, setCode] = useState("");
   const [apiId, setApiId] = useState("");
   const [apiHash, setApiHash] = useState("");
-  const [phone, setPhone] = useState("");
-  const [isConnected, setIsConnected] = useState(false);
+  const [phoneCodeHash, setPhoneCodeHash] = useState("");
+  const [session, setSession] = useState("");
   const [user, setUser] = useState<User | null>(null);
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [callStatus, setCallStatus] = useState("");
 
-  const checkStatus = async () => {
-    try {
-      const res = await fetch("/api/status");
-      const data = await res.json();
-      setIsConnected(data.connected);
-    } catch (e) {
-      console.error(e);
-    }
-  };
-
-  useEffect(() => {
-    checkStatus();
-  }, []);
-
-  const handleLogin = async () => {
-    if (!apiId || !apiHash) {
-      setError("API ID и API Hash обязательны");
+  const handleSendCode = async () => {
+    if (!phone || !apiId || !apiHash) {
+      setError("Заполните все поля");
       return;
     }
     setLoading(true);
     setError("");
+    
     try {
-      const res = await fetch("/api/login", {
+      let phoneNum = phone.trim();
+      if (!phoneNum.startsWith("+")) {
+        phoneNum = "+" + phoneNum;
+      }
+      
+      const res = await fetch("/api/auth/send-code", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ api_id: apiId, api_hash: apiHash, phone }),
+        body: JSON.stringify({
+          phone: phoneNum,
+          api_id: apiId,
+          api_hash: apiHash
+        }),
       });
       const data = await res.json();
+      
       if (data.error) {
         setError(data.error);
       } else {
-        setUser(data.user);
-        setIsConnected(true);
-        loadContacts();
+        setPhoneCodeHash(data.phone_code_hash);
+        setStep("code");
       }
     } catch (e: any) {
       setError(e.message);
@@ -68,9 +66,50 @@ export default function Home() {
     }
   };
 
-  const loadContacts = async () => {
+  const handleVerifyCode = async () => {
+    if (!code) {
+      setError("Введите код");
+      return;
+    }
+    setLoading(true);
+    setError("");
+    
     try {
-      const res = await fetch("/api/contacts");
+      let phoneNum = phone.trim();
+      if (!phoneNum.startsWith("+")) {
+        phoneNum = "+" + phoneNum;
+      }
+      
+      const res = await fetch("/api/auth/verify-code", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          phone: phoneNum,
+          code: code,
+        }),
+      });
+      const data = await res.json();
+      
+      if (data.error) {
+        setError(data.error);
+      } else {
+        setUser(data.user);
+        setSession(data.session);
+        loadContacts(data.session);
+        setStep("dashboard");
+      }
+    } catch (e: any) {
+      setError(e.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadContacts = async (sessionToken: string) => {
+    try {
+      const res = await fetch("/api/contacts", {
+        headers: { "Authorization": `Bearer ${sessionToken}` },
+      });
       const data = await res.json();
       if (data.contacts) {
         setContacts(data.contacts);
@@ -80,124 +119,181 @@ export default function Home() {
     }
   };
 
-  const handleCall = async (userId: number) => {
-    setCallStatus("Инициируем звонок...");
-    try {
-      const res = await fetch("/api/call", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ user_id: userId }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        setCallStatus("Звонок инициирован!");
-      } else {
-        setCallStatus(data.error || "Ошибка");
-      }
-    } catch (e: any) {
-      setCallStatus(e.message);
-    }
-  };
-
   const handleLogout = async () => {
-    await fetch("/api/logout", { method: "POST" });
-    setIsConnected(false);
+    if (session) {
+      try {
+        await fetch("/api/auth/logout", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ session }),
+        });
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    setSession("");
     setUser(null);
     setContacts([]);
+    setStep("phone");
+    setPhone("");
+    setCode("");
   };
 
   return (
-    <div className="min-h-screen bg-neutral-900 text-white">
+    <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900">
       <div className="container mx-auto px-4 py-8">
-        <h1 className="text-3xl font-bold mb-8 text-center">
+        <h1 className="text-4xl font-bold text-center text-white mb-8">
           Telegram Caller
         </h1>
 
-        {!isConnected ? (
-          <div className="max-w-md mx-auto bg-neutral-800 rounded-lg p-6">
-            <h2 className="text-xl font-semibold mb-4">Вход в Telegram</h2>
+        {step === "phone" && (
+          <div className="max-w-md mx-auto bg-white/10 backdrop-blur-md rounded-2xl p-8 border border-white/20">
+            <h2 className="text-2xl font-semibold text-white mb-6 text-center">
+              Вход / Регистрация
+            </h2>
+            
             <div className="space-y-4">
               <div>
-                <label className="block text-sm text-neutral-400 mb-1">API ID</label>
+                <label className="block text-sm text-gray-300 mb-1">API ID</label>
                 <input
                   type="text"
                   value={apiId}
                   onChange={(e) => setApiId(e.target.value)}
-                  className="w-full bg-neutral-700 border border-neutral-600 rounded px-3 py-2 focus:outline-none focus:border-blue-500"
-                  placeholder="Введите API ID"
+                  className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:border-pink-500"
+                  placeholder="Получите на my.telegram.org"
                 />
               </div>
               <div>
-                <label className="block text-sm text-neutral-400 mb-1">API Hash</label>
+                <label className="block text-sm text-gray-300 mb-1">API Hash</label>
                 <input
                   type="text"
                   value={apiHash}
                   onChange={(e) => setApiHash(e.target.value)}
-                  className="w-full bg-neutral-700 border border-neutral-600 rounded px-3 py-2 focus:outline-none focus:border-blue-500"
-                  placeholder="Введите API Hash"
+                  className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:border-pink-500"
+                  placeholder="Получите на my.telegram.org"
                 />
               </div>
               <div>
-                <label className="block text-sm text-neutral-400 mb-1">Телефон (опционально)</label>
+                <label className="block text-sm text-gray-300 mb-1">Номер телефона</label>
                 <input
                   type="text"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
-                  className="w-full bg-neutral-700 border border-neutral-600 rounded px-3 py-2 focus:outline-none focus:border-blue-500"
-                  placeholder="+7XXXXXXXXXX"
+                  className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:border-pink-500"
+                  placeholder="+79991234567"
                 />
               </div>
-              {error && <p className="text-red-400 text-sm">{error}</p>}
+              
+              {error && (
+                <div className="bg-red-500/20 border border-red-500 rounded-lg p-3 text-red-300 text-sm">
+                  {error}
+                </div>
+              )}
+              
               <button
-                onClick={handleLogin}
+                onClick={handleSendCode}
                 disabled={loading}
-                className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-neutral-600 rounded py-2 font-semibold transition-colors"
+                className="w-full bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 disabled:opacity-50 text-white font-semibold py-3 rounded-lg transition-all"
               >
-                {loading ? "Подключение..." : "Подключиться"}
+                {loading ? "Отправка..." : "Получить код"}
+              </button>
+            </div>
+            
+            <p className="text-center text-gray-400 text-sm mt-4">
+              Код придет в ваш Telegram
+            </p>
+          </div>
+        )}
+
+        {step === "code" && (
+          <div className="max-w-md mx-auto bg-white/10 backdrop-blur-md rounded-2xl p-8 border border-white/20">
+            <h2 className="text-2xl font-semibold text-white mb-6 text-center">
+              Подтверждение
+            </h2>
+            
+            <p className="text-gray-300 text-center mb-6">
+              Введите код, отправленный в Telegram на номер<br />
+              <span className="text-white font-semibold">{phone}</span>
+            </p>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm text-gray-300 mb-1">Код из Telegram</label>
+                <input
+                  type="text"
+                  value={code}
+                  onChange={(e) => setCode(e.target.value)}
+                  className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:border-pink-500 text-center text-2xl tracking-widest"
+                  placeholder="12345"
+                  maxLength={5}
+                />
+              </div>
+              
+              {error && (
+                <div className="bg-red-500/20 border border-red-500 rounded-lg p-3 text-red-300 text-sm">
+                  {error}
+                </div>
+              )}
+              
+              <button
+                onClick={handleVerifyCode}
+                disabled={loading || code.length < 3}
+                className="w-full bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 disabled:opacity-50 text-white font-semibold py-3 rounded-lg transition-all"
+              >
+                {loading ? "Проверка..." : "Войти"}
+              </button>
+              
+              <button
+                onClick={() => {
+                  setStep("phone");
+                  setCode("");
+                  setError("");
+                }}
+                className="w-full text-gray-400 hover:text-white text-sm py-2"
+              >
+                Назад
               </button>
             </div>
           </div>
-        ) : (
-          <div className="space-y-6">
-            <div className="bg-neutral-800 rounded-lg p-4 flex justify-between items-center">
-              <div>
-                <p className="text-neutral-400">Подключен как:</p>
-                <p className="font-semibold">{user?.first_name} {user?.last_name}</p>
-                <p className="text-sm text-neutral-400">@{user?.username}</p>
+        )}
+
+        {step === "dashboard" && user && (
+          <div className="max-w-2xl mx-auto space-y-6">
+            <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6 border border-white/20">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-gray-400 text-sm">Вход выполнен</p>
+                  <h2 className="text-2xl font-semibold text-white">
+                    {user.first_name} {user.last_name || ""}
+                  </h2>
+                  <p className="text-gray-400">@{user.username || "нет username"}</p>
+                  <p className="text-gray-500 text-sm">ID: {user.id}</p>
+                </div>
+                <button
+                  onClick={handleLogout}
+                  className="bg-red-500/20 hover:bg-red-500/30 text-red-300 px-4 py-2 rounded-lg transition-colors"
+                >
+                  Выйти
+                </button>
               </div>
-              <button
-                onClick={handleLogout}
-                className="bg-red-600 hover:bg-red-700 px-4 py-2 rounded font-semibold"
-              >
-                Выйти
-              </button>
             </div>
-
-            {callStatus && (
-              <div className="bg-blue-900/50 border border-blue-500 rounded-lg p-4 text-center">
-                {callStatus}
-              </div>
-            )}
-
-            <div className="bg-neutral-800 rounded-lg p-6">
-              <h2 className="text-xl font-semibold mb-4">Контакты</h2>
+            
+            <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6 border border-white/20">
+              <h3 className="text-xl font-semibold text-white mb-4">Контакты</h3>
               {contacts.length === 0 ? (
-                <p className="text-neutral-400">Загрузка контактов...</p>
+                <p className="text-gray-400">Контактов не найдено</p>
               ) : (
-                <div className="space-y-2">
+                <div className="space-y-2 max-h-96 overflow-y-auto">
                   {contacts.map((contact) => (
                     <div
                       key={contact.id}
-                      className="flex justify-between items-center bg-neutral-700 rounded p-3"
+                      className="flex items-center justify-between bg-white/5 rounded-lg p-3 hover:bg-white/10 transition-colors"
                     >
                       <div>
-                        <p className="font-medium">{contact.name}</p>
-                        <p className="text-sm text-neutral-400">{contact.phone}</p>
+                        <p className="text-white font-medium">{contact.name}</p>
+                        <p className="text-gray-400 text-sm">{contact.phone || "@" + contact.username}</p>
                       </div>
-                      <button
-                        onClick={() => handleCall(contact.id)}
-                        className="bg-green-600 hover:bg-green-700 px-4 py-2 rounded font-semibold"
-                      >
+                      <button className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
                         Позвонить
                       </button>
                     </div>

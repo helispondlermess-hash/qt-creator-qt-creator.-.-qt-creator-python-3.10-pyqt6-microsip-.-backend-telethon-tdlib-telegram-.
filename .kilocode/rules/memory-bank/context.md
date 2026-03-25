@@ -2,66 +2,68 @@
 
 ## Current State
 
-**Project Status**: ✅ Готов к использованию
+**Project Status**: ✅ Готов к использованию (v2.0.0)
 
 Проект включает:
 - Веб-версия на Next.js (localhost:3000)
-- Десктоп приложение на PyQt6 (требует сборки через PyInstaller)
-- Установщик с выбором версии
+- Backend API на Python (localhost:8080) с Telethon
+- Авторизация через Telegram по номеру телефона и коду
 
 ## Recently Completed
 
-- [x] Исправлена ошибка AA_EnableHighDpiScaling в main.py
-- [x] Создана веб-версия интерфейса на Next.js
-- [x] Создан API эндпоинт /api/status
-- [x] Создан установщик (installer.html, install.bat)
-- [x] Создан лаунчер (launcher.bat)
-- [x] Обновлена спецификация PyInstaller
+- [x] Создан backend сервер на Python (server.py) с Telethon
+- [x] Реализована авторизация по номеру телефона через Telegram API
+- [x] Создан UI для входа/регистрации с вводом API_ID, API_HASH, номера
+- [x] Добавлена верификация кода из Telegram
+- [x] Реализовано получение контактов после авторизации
+- [x] Добавлен скрипт запуска (start.bat)
 
 ## Структура проекта
 
 | Директория/Файл | Назначение | Статус |
 |-----------------|------------|--------|
-| `telegram-caller-app/main.py` | Десктоп приложение (PyQt6) | ✅ Готов |
+| `telegram-caller-app/server.py` | Backend API (aiohttp + Telethon) | ✅ Готов |
 | `telegram-caller-app/requirements.txt` | Зависимости Python | ✅ Обновлено |
-| `telegram-caller-app/specs/telegram_caller.spec` | PyInstaller спецификация | ✅ Готов |
-| `telegram-caller-app/install.bat` | Установщик Windows | ✅ Создан |
-| `telegram-caller-app/launcher.bat` | Лаунчер | ✅ Создан |
-| `telegram-caller-app/installer.html` | HTML установщик | ✅ Создан |
-| `src/app/page.tsx` | Веб-интерфейс | ✅ Готов |
-| `src/app/api/status/route.ts` | API статус | ✅ Готов |
+| `telegram-caller-app/start.bat` | Скрипт запуска | ✅ Создан |
+| `src/app/page.tsx` | UI авторизации и контакты | ✅ Готов |
+| `src/app/api/status/route.ts` | Proxy к backend | ✅ Готов |
 
 ## Запуск
 
-### Веб-версия:
+### Полный запуск (Frontend + Backend):
+```cmd
+cd telegram-caller-app
+start.bat
+# Выбрать пункт 1
+```
+
+### Или вручную:
 ```bash
+# Терминал 1: Backend
+python telegram-caller-app/server.py
+
+# Терминал 2: Frontend  
 npm run dev
-# Открыть http://localhost:3000
 ```
 
-### Десктоп приложение (на Windows):
-```cmd
-cd telegram-caller-app
-pip install -r requirements.txt
-pyinstaller specs\telegram_caller.spec --clean
-dist\TelegramCaller.exe
-```
-
-### Установщик:
-```cmd
-cd telegram-caller-app
-install.bat
-```
+### Использование:
+1. Открыть http://localhost:3000
+2. Ввести API_ID и API_HASH (получить на my.telegram.org)
+3. Ввести номер телефона (+79991234567)
+4. Нажать "Получить код" - код придет в Telegram
+5. Ввести код из Telegram
+6. После входа отобразятся контакты
 
 ## Технологический стек
 
-- **Веб**: Next.js 16, React 19, TypeScript, Tailwind CSS 4
-- **Десктоп**: PyQt6, Telethon, sounddevice, opencv-python
-- **Сборка**: PyInstaller, npm build
+- **Frontend**: Next.js 16, React 19, TypeScript, Tailwind CSS 4
+- **Backend**: Python, aiohttp, Telethon
+- **Auth**: Telegram API (TD-Lib через Telethon)
 
 ## Сессия
 
 | Дата | Изменения |
 |------|-----------|
-| 2026-03-25 | Исправлены ошибки, созданы веб и десктоп версии, установщик |
+| 2026-03-25 | Исправлены ошибки, созданы веб и десктоп версии |
 | 2026-03-25 | Создан релиз v1.0.0 на GitHub |
+| 2026-03-25 | Добавлена авторизация по номеру через Telegram (v2.0.0) |
