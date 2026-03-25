@@ -1,87 +1,66 @@
-# Active Context: Next.js Starter Template
+# Active Context: Telegram Caller App
 
 ## Current State
 
-**Template Status**: ✅ Ready for development
+**Project Status**: ✅ Готов к использованию
 
-The template is a clean Next.js 16 starter with TypeScript and Tailwind CSS 4. It's ready for AI-assisted expansion to build any type of application.
+Проект включает:
+- Веб-версия на Next.js (localhost:3000)
+- Десктоп приложение на PyQt6 (требует сборки через PyInstaller)
+- Установщик с выбором версии
 
 ## Recently Completed
 
-- [x] Base Next.js 16 setup with App Router
-- [x] TypeScript configuration with strict mode
-- [x] Tailwind CSS 4 integration
-- [x] ESLint configuration
-- [x] Memory bank documentation
-- [x] Recipe system for common features
+- [x] Исправлена ошибка AA_EnableHighDpiScaling в main.py
+- [x] Создана веб-версия интерфейса на Next.js
+- [x] Создан API эндпоинт /api/status
+- [x] Создан установщик (installer.html, install.bat)
+- [x] Создан лаунчер (launcher.bat)
+- [x] Обновлена спецификация PyInstaller
 
-## Current Structure
+## Структура проекта
 
-| File/Directory | Purpose | Status |
-|----------------|---------|--------|
-| `src/app/page.tsx` | Home page | ✅ Ready |
-| `src/app/layout.tsx` | Root layout | ✅ Ready |
-| `src/app/globals.css` | Global styles | ✅ Ready |
-| `.kilocode/` | AI context & recipes | ✅ Ready |
+| Директория/Файл | Назначение | Статус |
+|-----------------|------------|--------|
+| `telegram-caller-app/main.py` | Десктоп приложение (PyQt6) | ✅ Готов |
+| `telegram-caller-app/requirements.txt` | Зависимости Python | ✅ Обновлено |
+| `telegram-caller-app/specs/telegram_caller.spec` | PyInstaller спецификация | ✅ Готов |
+| `telegram-caller-app/install.bat` | Установщик Windows | ✅ Создан |
+| `telegram-caller-app/launcher.bat` | Лаунчер | ✅ Создан |
+| `telegram-caller-app/installer.html` | HTML установщик | ✅ Создан |
+| `src/app/page.tsx` | Веб-интерфейс | ✅ Готов |
+| `src/app/api/status/route.ts` | API статус | ✅ Готов |
 
-## Current Focus
+## Запуск
 
-The template is ready. Next steps depend on user requirements:
-
-1. What type of application to build
-2. What features are needed
-3. Design/branding preferences
-
-## Quick Start Guide
-
-### To add a new page:
-
-Create a file at `src/app/[route]/page.tsx`:
-```tsx
-export default function NewPage() {
-  return <div>New page content</div>;
-}
+### Веб-версия:
+```bash
+npm run dev
+# Открыть http://localhost:3000
 ```
 
-### To add components:
-
-Create `src/components/` directory and add components:
-```tsx
-// src/components/ui/Button.tsx
-export function Button({ children }: { children: React.ReactNode }) {
-  return <button className="px-4 py-2 bg-blue-600 text-white rounded">{children}</button>;
-}
+### Десктоп приложение (на Windows):
+```cmd
+cd telegram-caller-app
+pip install -r requirements.txt
+pyinstaller specs\telegram_caller.spec --clean
+dist\TelegramCaller.exe
 ```
 
-### To add a database:
-
-Follow `.kilocode/recipes/add-database.md`
-
-### To add API routes:
-
-Create `src/app/api/[route]/route.ts`:
-```tsx
-import { NextResponse } from "next/server";
-
-export async function GET() {
-  return NextResponse.json({ message: "Hello" });
-}
+### Установщик:
+```cmd
+cd telegram-caller-app
+install.bat
 ```
 
-## Available Recipes
+## Технологический стек
 
-| Recipe | File | Use Case |
-|--------|------|----------|
-| Add Database | `.kilocode/recipes/add-database.md` | Data persistence with Drizzle + SQLite |
+- **Веб**: Next.js 16, React 19, TypeScript, Tailwind CSS 4
+- **Десктоп**: PyQt6, Telethon, sounddevice, opencv-python
+- **Сборка**: PyInstaller, npm build
 
-## Pending Improvements
+## Сессия
 
-- [ ] Add more recipes (auth, email, etc.)
-- [ ] Add example components
-- [ ] Add testing setup recipe
-
-## Session History
-
-| Date | Changes |
-|------|---------|
-| Initial | Template created with base setup |
+| Дата | Изменения |
+|------|-----------|
+| 2026-03-25 | Исправлены ошибки, созданы веб и десктоп версии, установщик |

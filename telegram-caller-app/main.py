@@ -57,9 +57,6 @@ def main():
     app.setApplicationVersion("1.0.0")
     app.setDesktopFileName("telegram-caller")
     
-    app.setAttribute(Qt.ApplicationAttribute.AA_EnableHighDpiScaling, True)
-    app.setAttribute(Qt.ApplicationAttribute.AA_UseHighDpiPixmaps, True)
-    
     window = MainWindow()
     window.show()
     
