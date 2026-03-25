@@ -69,7 +69,7 @@ class TelegramClient:
         """Установка колбэка для запроса кода подтверждения"""
         self._on_auth_code_required = callback
     
-    def set_2fa_password_callback(self: Callable):
+    def set_2fa_password_callback(self, callback: Callable):
         """Установка колбэка для запроса 2FA пароля"""
         self._on_2fa_password_required = callback
     
